@@ -46,3 +46,10 @@
         bg-pix (repeat (freqs bg) bg)]
     (vec (apply concat (cond (= order 1) [color-pix bg-pix]
                              (= order 0) [bg-pix color-pix])))))
+
+(defn cartesian-product
+  [m n]
+  (vec (apply concat (map (fn [mi]
+                            (mapv (fn [ni]
+                                    [mi ni]) n)) m))))
+

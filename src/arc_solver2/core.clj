@@ -60,6 +60,24 @@
                                                  0
                                                  1)))) train)) (count train)]) all-probs)))
 
+(defn func-on-all-probs-new
+  [func all-probs]
+  (reduce (fn [[tot-solv tot] [_ task-solv task-tot]]
+            [(+ tot-solv task-solv) (+ tot task-tot)])
+          [0 0] (map-indexed (fn [ind [fp {train "train"}]]
+                               (println "solving " fp (str (format "%.2f"
+                                                                   (* 100 (float (/ (inc ind) (count all-probs))))) "%"))
+                               [fp (apply + (map (fn [{in "input" out "output"}]
+                                                   (let [{pd :pix} (iu/diff in out)]
+                                                     (if (and (some? pd) (zero? pd))
+                                                       1
+                                                       (let [res (func in out)]
+                                                         (if (empty? res)
+                                                           0
+                                                           1))))) train)) (count train)]) all-probs)))
+
+(def probs (all-problems train-path))
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]

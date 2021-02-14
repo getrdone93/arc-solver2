@@ -8,12 +8,12 @@
 
 (defn filter-image
   [keep bg image]
-  (iu/filter-image keep bg image))
+  (iu/filter-image #{keep} bg image))
 
-(defn overlay
-  [bg images]
-  (iu/merge-img-coll (partial iu/merge-images (fn [p1 p2 _]
-                                          (max p1 p2))) bg images))
+;(defn overlay
+;  [bg images]
+;  (iu/merge-img-coll (partial iu/merge-images (fn [p1 p2 _]
+;                                          (max p1 p2))) bg images))
 
 (defn shift-rows-left
   ([image]
@@ -40,4 +40,4 @@
    (iu/shift-cols image cols iu/shift-left)))
 
 (def func-space
-  {})
+  {'filter-image (iu/func-space filter-image (map #(vector % 0) (range 10)))})

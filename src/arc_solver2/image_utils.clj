@@ -88,10 +88,10 @@
 
 (defn pix-diff
   [img1 img2]
-  (let [{p :pix} (diff img1 img2)]
+  (let [{p :pix rd :row cd :col} (diff img1 img2)]
     (if (some? p)
       p
-      0)))
+      (+ rd cd))))
 
 (defn gen-row
   [v image]
@@ -161,6 +161,17 @@
   ([r c v]
    (vec (take r (repeat (vec (take c (repeat v))))))))
 
+(defn random-image
+  ([r c]
+   (random-image r c 10))
+  ([r c space]
+   (vec (repeatedly r (fn []
+                   (vec (repeatedly c #(rand-int space))))))))
+
+(defn random-shape-image
+  [br bc]
+  (random-image (inc (rand-int br)) (inc (rand-int bc))))
+
 (defn slice-image
   [image [rb re] [cb ce]]
   (mapv #(subvec % cb ce)
@@ -209,12 +220,12 @@
         (vec (apply concat (concat [image] (repeat r image))))))
 
 (defn filter-image
-  [keep bg image]
+  [keep-set bg image]
   (transpose
     (apply mapv (fn [& col]
                   (mapv (fn [cv]
-                          (if (= cv keep)
-                            keep
+                          (if (some? (keep-set cv))
+                            cv
                             bg)) col)) image)))
 
 (defn func-space
@@ -225,7 +236,7 @@
 (defn color-func-space
   [func]
   (vec (func-space func (map #(vector %)
-                        (range 10)))))
+                             (range 10)))))
 
 (defn funcs-for-ns
   [ns ns-func-space]

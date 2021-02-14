@@ -10,15 +10,15 @@
 ;(conj '(color-test first second inc inc) '->)
 
 (defn repeat-token
-  ([[in prog :as res] out token diff-func]
+  ([[in prog :as img-prog] out token diff-func]
    (let [diff (diff-func in out)]
      (if (zero? diff)
-       [res diff]
+       [img-prog diff]
        (let [nimg (token in)
              n-diff (diff-func nimg out)]
          (cond
            (zero? n-diff) [[nimg (conj prog token)] n-diff]
-           (>= n-diff diff) [res diff]
+           (>= n-diff diff) [img-prog diff]
            :else (repeat-token [nimg (conj prog token)] out token diff-func)))))))
 
 (defn look-ahead
@@ -37,28 +37,38 @@
                                      (< d max-diff)) new-front)))]
       [:perfect (rem-diff perfect)])))
 
+(def counter (atom 0))
+(def min-diff (atom Long/MAX_VALUE))
+
 (defn greedy-limited-bfs
   ([in out tokens diff-func]
    (if (and (iu/exists? out) (iu/exists? in) (pos? (diff-func in out)))
      (greedy-limited-bfs [[in []]] out tokens Long/MAX_VALUE {} diff-func)
      []))
-  ([[[in prog] & res-ins] out tokens max-depth all-progs diff-func]
+  ([[[in prog] & res-ins :as frontier] out tokens max-depth all-progs diff-func]
    (cond
      (and (not (iu/exists? in)) (empty? res-ins)) (into [] all-progs)
-     (>= (count prog) max-depth) (greedy-limited-bfs res-ins out tokens max-depth all-progs diff-func)
+     (>= (count prog) max-depth) (recur res-ins out tokens max-depth all-progs diff-func)
      (iu/exists? in) (let [d (diff-func in out)
                            [front-key new-front] (look-ahead (mapv (fn [tok]
                                                                      [(tok in) (conj prog tok)]) tokens)
                                                              out d diff-func)]
+                       (swap! counter inc)
+                       (swap! min-diff #(min % d))
+                       (when (zero? (mod (deref counter) 1000))
+                         (let [pls (map (fn [[_ prog]]
+                                          (count prog)) frontier)]
+                           (println "(min,max,avg): " [(apply min pls) (apply max pls) (float (/ (apply + pls) (count pls)))]
+                                    " frontier size: " (inc (count res-ins)) "min diff: " (deref min-diff))))
                        (if (= front-key :perfect)
-                         (greedy-limited-bfs res-ins out tokens
+                         (recur res-ins out tokens
                                              (inc (count prog)) (merge (into {} new-front) all-progs) diff-func)
-                         (greedy-limited-bfs (vec (concat res-ins
+                         (recur (vec (concat res-ins
                                                           (mapv (fn [[k vs]]
                                                                   [k (second (first vs))])
                                                                 (group-by first new-front))))
                                              out tokens max-depth all-progs diff-func)))
-     :else (greedy-limited-bfs res-ins out tokens max-depth all-progs diff-func))))
+     :else (recur res-ins out tokens max-depth all-progs diff-func))))
 
 (defn equal-shape
   [in out]

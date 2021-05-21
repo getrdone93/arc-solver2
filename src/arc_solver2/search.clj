@@ -2,7 +2,8 @@
   (:require [arc-solver2.image-utils :as iu])
   (:require [arc-solver2.shape-transforms :as stf])
   (:require [clojure.tools.logging :as log]
-            [arc-solver2.pixel-transforms :as ptf]))
+            [arc-solver2.pixel-transforms :as ptf])
+  (:require [cheshire.core :as chesh-core]))
 
 ;(ns-publics 'arc-solver2.image-transforms)
 
@@ -39,35 +40,83 @@
 
 (def counter (atom 0))
 (def min-diff (atom Long/MAX_VALUE))
+(def best-image (atom (iu/make-image 1 1)))
+
+(def test-frontier (atom []))
+(def out-image (atom []))
+
+;bad input b190f7f5.json
+
+(defn write-solution
+  [out-path structure]
+  (spit out-path (chesh-core/generate-string structure)))
 
 (defn greedy-limited-bfs
   ([in out tokens diff-func]
    (if (and (iu/exists? out) (iu/exists? in) (pos? (diff-func in out)))
-     (greedy-limited-bfs [[in []]] out tokens Long/MAX_VALUE {} diff-func)
+     (do
+       (reset! min-diff Long/MAX_VALUE)
+       (greedy-limited-bfs (sorted-set-by (fn [[img1 _] [img2 _]]
+                                            (< (diff-func img1 out) (diff-func img2 out))) [in []])
+                           out tokens Long/MAX_VALUE {} diff-func))
      []))
   ([[[in prog] & res-ins :as frontier] out tokens max-depth all-progs diff-func]
    (cond
-     (and (not (iu/exists? in)) (empty? res-ins)) (into [] all-progs)
+     ;(and (not (iu/exists? in)) (empty? res-ins)) (into [] all-progs)
+     (and (not (iu/exists? in)) (empty? res-ins)) (apply sorted-set-by (fn [[img1 _] [img2 _]]
+                                                                   (< (diff-func img1 out) (diff-func img2 out))) all-progs)
      (>= (count prog) max-depth) (recur res-ins out tokens max-depth all-progs diff-func)
      (iu/exists? in) (let [d (diff-func in out)
                            [front-key new-front] (look-ahead (mapv (fn [tok]
                                                                      [(tok in) (conj prog tok)]) tokens)
                                                              out d diff-func)]
                        (swap! counter inc)
-                       (swap! min-diff #(min % d))
+                       ;(swap! min-diff #(min % d))
+                       (when (< d @min-diff)
+                         (reset! min-diff d)
+                         (reset! best-image in)
+                         (reset! test-frontier frontier)
+                         (reset! out-image out))
                        (when (zero? (mod (deref counter) 1000))
                          (let [pls (map (fn [[_ prog]]
-                                          (count prog)) frontier)]
+                                          (count prog)) frontier)
+                               data {"train" (mapv (fn [img]
+                                                     {"input" img "output" out})
+                                                   (map first (take 10 frontier)))
+                                     "test" [{"input" @best-image "output" [[1]]}]}]
+
                            (println "(min,max,avg): " [(apply min pls) (apply max pls) (float (/ (apply + pls) (count pls)))]
-                                    " frontier size: " (inc (count res-ins)) "min diff: " (deref min-diff))))
+                                    " frontier size: " (inc (count res-ins)) " min diff: " (deref min-diff))
+                           (write-solution "/home/tanderson/git/arc-solver2/output/viz.json" data)))
                        (if (= front-key :perfect)
+                         ;(recur res-ins out tokens
+                         ;       (inc (count prog)) (merge (into {} new-front) all-progs) diff-func)
+
                          (recur res-ins out tokens
-                                             (inc (count prog)) (merge (into {} new-front) all-progs) diff-func)
-                         (recur (vec (concat res-ins
-                                                          (mapv (fn [[k vs]]
-                                                                  [k (second (first vs))])
-                                                                (group-by first new-front))))
-                                             out tokens max-depth all-progs diff-func)))
+                                (inc (count prog)) (clojure.set/union all-progs new-front) diff-func)
+
+
+
+                         ;(recur (mapv (fn [[_ vs]]
+                         ;                     (first (sort (fn [[_ p1] [_ p2]]
+                         ;                                    (< (count p1) (count p2))) vs))) (group-by first
+                         ;                                                                               (concat res-ins new-front)))
+                         ;       out tokens max-depth all-progs diff-func)
+
+                         ;(recur (vec (sort (fn [[img1 _] [img2 _]]
+                         ;                    (< (diff-func img1 out) (diff-func img2 out)))
+                         ;                  (mapv (fn [[_ vs]]
+                         ;                          (first (sort (fn [[_ p1] [_ p2]]
+                         ;                                         (< (count p1) (count p2))) vs))) (group-by first
+                         ;                                                                                    (concat res-ins new-front)))))
+                         ;       out tokens max-depth all-progs diff-func)
+
+
+                         (recur (clojure.set/union res-ins (mapv (fn [[_ vs]]
+                                                            (first (sort (fn [[_ p1] [_ p2]]
+                                                                           (< (count p1) (count p2))) vs))) (group-by first new-front)))
+                                out tokens max-depth all-progs diff-func)
+                         ))
      :else (recur res-ins out tokens max-depth all-progs diff-func))))
 
 (defn equal-shape
@@ -82,9 +131,11 @@
   [in out]
   (let [diff (iu/diff in out)]
     (if (nil? (:pix diff))
-      (greedy-limited-bfs (equal-shape in out) out
-                          (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space)
-                          Long/MAX_VALUE
-                          {}
-                          iu/pix-diff)
+      (let [eq-shps (equal-shape in out)
+            _ (reset! min-diff (. Long MAX_VALUE))]
+        (greedy-limited-bfs eq-shps out
+                            (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space)
+                            Long/MAX_VALUE
+                            {}
+                            iu/pix-diff))
       (equal-image in out))))

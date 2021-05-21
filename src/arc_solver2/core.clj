@@ -65,7 +65,7 @@
   (reduce (fn [[tot-solv tot] [_ task-solv task-tot]]
             [(+ tot-solv task-solv) (+ tot task-tot)])
           [0 0] (map-indexed (fn [ind [fp {train "train"}]]
-                               (println "solving " fp (str (format "%.2f"
+                               (println "solving " ind fp (str (format "%.2f"
                                                                    (* 100 (float (/ (inc ind) (count all-probs))))) "%"))
                                [fp (apply + (map (fn [{in "input" out "output"}]
                                                    (let [{pd :pix} (iu/diff in out)]

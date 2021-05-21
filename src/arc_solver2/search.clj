@@ -51,6 +51,25 @@
   [out-path structure]
   (spit out-path (chesh-core/generate-string structure)))
 
+(defn debug-search [{d :dist in :in out :out frontier :frontier res-ins :res-ins}]
+  (swap! counter inc)
+  (when (< d @min-diff)
+    (reset! min-diff d)
+    (reset! best-image in)
+    (reset! test-frontier frontier)
+    (reset! out-image out))
+  (when (zero? (mod (deref counter) 1000))
+    (let [pls (map (fn [[_ prog]]
+                     (count prog)) frontier)
+          data {"train" (mapv (fn [img]
+                                {"input" img "output" out})
+                              (map first (take 10 frontier)))
+                "test" [{"input" @best-image "output" [[1]]}]}]
+
+      (println "(min,max,avg): " [(apply min pls) (apply max pls) (float (/ (apply + pls) (count pls)))]
+               " frontier size: " (inc (count res-ins)) " min diff: " (deref min-diff))
+      (write-solution "/home/tanderson/git/arc-solver2/output/viz.json" data))))
+
 (defn greedy-limited-bfs
   ([in out tokens diff-func]
    (if (and (iu/exists? out) (iu/exists? in) (pos? (diff-func in out)))
@@ -62,7 +81,6 @@
      []))
   ([[[in prog] & res-ins :as frontier] out tokens max-depth all-progs diff-func]
    (cond
-     ;(and (not (iu/exists? in)) (empty? res-ins)) (into [] all-progs)
      (and (not (iu/exists? in)) (empty? res-ins)) (apply sorted-set-by (fn [[img1 _] [img2 _]]
                                                                    (< (diff-func img1 out) (diff-func img2 out))) all-progs)
      (>= (count prog) max-depth) (recur res-ins out tokens max-depth all-progs diff-func)
@@ -70,53 +88,14 @@
                            [front-key new-front] (look-ahead (mapv (fn [tok]
                                                                      [(tok in) (conj prog tok)]) tokens)
                                                              out d diff-func)]
-                       (swap! counter inc)
-                       ;(swap! min-diff #(min % d))
-                       (when (< d @min-diff)
-                         (reset! min-diff d)
-                         (reset! best-image in)
-                         (reset! test-frontier frontier)
-                         (reset! out-image out))
-                       (when (zero? (mod (deref counter) 1000))
-                         (let [pls (map (fn [[_ prog]]
-                                          (count prog)) frontier)
-                               data {"train" (mapv (fn [img]
-                                                     {"input" img "output" out})
-                                                   (map first (take 10 frontier)))
-                                     "test" [{"input" @best-image "output" [[1]]}]}]
-
-                           (println "(min,max,avg): " [(apply min pls) (apply max pls) (float (/ (apply + pls) (count pls)))]
-                                    " frontier size: " (inc (count res-ins)) " min diff: " (deref min-diff))
-                           (write-solution "/home/tanderson/git/arc-solver2/output/viz.json" data)))
+                       (debug-search {:dist d :in in :out out :frontier frontier :res-ins res-ins})
                        (if (= front-key :perfect)
-                         ;(recur res-ins out tokens
-                         ;       (inc (count prog)) (merge (into {} new-front) all-progs) diff-func)
-
                          (recur res-ins out tokens
                                 (inc (count prog)) (clojure.set/union all-progs new-front) diff-func)
-
-
-
-                         ;(recur (mapv (fn [[_ vs]]
-                         ;                     (first (sort (fn [[_ p1] [_ p2]]
-                         ;                                    (< (count p1) (count p2))) vs))) (group-by first
-                         ;                                                                               (concat res-ins new-front)))
-                         ;       out tokens max-depth all-progs diff-func)
-
-                         ;(recur (vec (sort (fn [[img1 _] [img2 _]]
-                         ;                    (< (diff-func img1 out) (diff-func img2 out)))
-                         ;                  (mapv (fn [[_ vs]]
-                         ;                          (first (sort (fn [[_ p1] [_ p2]]
-                         ;                                         (< (count p1) (count p2))) vs))) (group-by first
-                         ;                                                                                    (concat res-ins new-front)))))
-                         ;       out tokens max-depth all-progs diff-func)
-
-
                          (recur (clojure.set/union res-ins (mapv (fn [[_ vs]]
                                                             (first (sort (fn [[_ p1] [_ p2]]
                                                                            (< (count p1) (count p2))) vs))) (group-by first new-front)))
-                                out tokens max-depth all-progs diff-func)
-                         ))
+                                out tokens max-depth all-progs diff-func)))
      :else (recur res-ins out tokens max-depth all-progs diff-func))))
 
 (defn equal-shape

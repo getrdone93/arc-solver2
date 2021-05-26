@@ -115,7 +115,8 @@
                                        (range (+ bc cs) (+ ec cs)))]
     (reduce (fn [img [c sc]]
               (pix-func c sc img)) image
-            (apply mapv (fn [c sc] [c sc]) [coords s-coords]))))
+            (apply mapv (fn [c sc]
+                          [c sc]) [coords s-coords]))))
 
 (defn replicate-pixel
   [[fr fc] to image]

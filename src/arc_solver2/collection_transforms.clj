@@ -17,7 +17,7 @@
 (defn layers-by-color
   [bg image]
   (mapv (fn [keep]
-          (iu/filter-image keep bg image)) (iu/colors image bg)))
+          (iu/filter-image #{keep} bg image)) (iu/colors image bg)))
 
 (defn split-horizontal
   [image]

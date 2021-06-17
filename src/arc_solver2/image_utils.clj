@@ -1,14 +1,32 @@
 (ns arc-solver2.image-utils)
 
 (defn shape
-  [image]
-  [(count image) (-> image first count)])
+  ([tensor]
+   (shape tensor []))
+  ([tensor res]
+   (let [colls-cnts (map (fn [ten]
+                           (let [tc? (coll? ten)]
+                             [tc? (if tc?
+                                    (count ten)
+                                    nil)])) tensor)
+         colls (map first colls-cnts)
+         cnts (map second colls-cnts)
+         valid? (and (= 1 (count (set colls))) (= 1 (count (set cnts))))]
+     (if valid?
+       (let [ground? (every? false? colls)]
+         (if ground?
+           (conj res (count tensor))
+           (let [children (set (map (fn [ten]
+                                      (shape ten (conj res (count tensor)))) tensor))]
+             (if (= 1 (count children))
+               (first children)
+               nil))))
+       nil))))
 
 (defn valid-image?
   [image]
-  (and (some? (seq (flatten image)))
-       (= 1 (count (set (map #(count %)
-                             image))))))
+  (let [shp (shape image)]
+    (and (some? shp) (= 2 (count shp)))))
 
 (defn row-swap-args
   [image ind-rows s]
@@ -249,24 +267,3 @@
     (filterv (fn [sym]
               (not (clojure.string/includes? (str sym) "func-space")))
             (concat one-arg (apply concat (vals ns-func-space))))))
-
-(defn shape
-  [tensor res]
-  (let [colls-cnts (map (fn [ten]
-                          (let [tc? (coll? ten)]
-                            [tc? (if tc?
-                                   (count ten)
-                                   nil)])) tensor)
-        colls (map first colls-cnts)
-        cnts (map second colls-cnts)
-        valid? (and (= 1 (count (set colls))) (= 1 (count (set cnts))))]
-    (if valid?
-      (let [ground? (every? false? colls)]
-        (if ground?
-          (conj res (count tensor))
-          (let [children (set (map (fn [ten]
-                                     (shape ten (conj res (count tensor)))) tensor))]
-            (if (= 1 (count children))
-              (first children)
-              nil))))
-      nil)))

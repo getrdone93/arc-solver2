@@ -28,6 +28,19 @@
   (let [shp (shape image)]
     (and (some? shp) (= 2 (count shp)))))
 
+(defn valid-image-shape?
+  [shape]
+  (and (some? shape) (= 2 (count shape))))
+
+(defn flatten-frontier
+  [[i & imgs] front]
+  (if (some? i)
+    (if (valid-image? i)
+      ;stack shouldn't be deep so use func name
+      (flatten-frontier imgs (conj front i))
+      (flatten-frontier imgs (concat front i)))
+    front))
+
 (defn row-swap-args
   [image ind-rows s]
   (concat [image] (apply concat (map (fn [r]

@@ -72,7 +72,7 @@
 
 (defn greedy-limited-bfs
   ([in out tokens diff-func]
-   (if (and (iu/exists? out) (iu/exists? in) (pos? (diff-func in out)))
+   (if (and (iu/valid-image? out) (iu/valid-image? in) (pos? (diff-func in out)))
      (do
        (reset! min-diff Long/MAX_VALUE)
        (greedy-limited-bfs (sorted-set-by (fn [[img1 _] [img2 _]]
@@ -81,10 +81,10 @@
      []))
   ([[[in prog] & res-ins :as frontier] out tokens max-depth all-progs diff-func]
    (cond
-     (and (not (iu/exists? in)) (empty? res-ins)) (apply sorted-set-by (fn [[img1 _] [img2 _]]
+     (and (not (iu/valid-image? in)) (empty? res-ins)) (apply sorted-set-by (fn [[img1 _] [img2 _]]
                                                                    (< (diff-func img1 out) (diff-func img2 out))) all-progs)
      (>= (count prog) max-depth) (recur res-ins out tokens max-depth all-progs diff-func)
-     (iu/exists? in) (let [d (diff-func in out)
+     (iu/valid-image? in) (let [d (diff-func in out)
                            [front-key new-front] (look-ahead (mapv (fn [tok]
                                                                      [(tok in) (conj prog tok)]) tokens)
                                                              out d diff-func)]

@@ -39,3 +39,14 @@
             [[[0 end] [0 half]]
              [[0 end] [half end-col]]])))
 
+(defn general-column-merge
+  [images]
+  (mapv (fn [[_ imgs]]
+          (reduce (fn [i1 i2]
+                    (apply mapv (fn [r1 r2]
+                                  (vec (concat r1 r2))) [i1 i2])) (first imgs) (rest imgs)))
+        (group-by #(first (iu/shape %)) images)))
+
+(def func-space
+  {'layers-by-color [(partial layers-by-color 0)]
+   'split-along (iu/color-func-space split-along)})

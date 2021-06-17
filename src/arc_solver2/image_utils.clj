@@ -4,9 +4,11 @@
   [image]
   [(count image) (-> image first count)])
 
-(defn exists?
+(defn valid-image?
   [image]
-  (some? (seq (flatten image))))
+  (and (some? (seq (flatten image)))
+       (= 1 (count (set (map #(count %)
+                             image))))))
 
 (defn row-swap-args
   [image ind-rows s]
@@ -99,7 +101,7 @@
 
 (defn transpose
   [image]
-  (if (exists? image)
+  (if (valid-image? image)
     (apply mapv vector image)
     image))
 
@@ -247,3 +249,24 @@
     (filterv (fn [sym]
               (not (clojure.string/includes? (str sym) "func-space")))
             (concat one-arg (apply concat (vals ns-func-space))))))
+
+(defn shape
+  [tensor res]
+  (let [colls-cnts (map (fn [ten]
+                          (let [tc? (coll? ten)]
+                            [tc? (if tc?
+                                   (count ten)
+                                   nil)])) tensor)
+        colls (map first colls-cnts)
+        cnts (map second colls-cnts)
+        valid? (and (= 1 (count (set colls))) (= 1 (count (set cnts))))]
+    (if valid?
+      (let [ground? (every? false? colls)]
+        (if ground?
+          (conj res (count tensor))
+          (let [children (set (map (fn [ten]
+                                     (shape ten (conj res (count tensor)))) tensor))]
+            (if (= 1 (count children))
+              (first children)
+              nil))))
+      nil)))

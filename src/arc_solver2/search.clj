@@ -106,6 +106,12 @@
   [in out]
   (greedy-limited-bfs in out (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space) iu/pix-diff))
 
+(defn find-progs
+  [in out]
+  (greedy-limited-bfs in out (vec (shuffle (concat (iu/funcs-for-ns 'arc-solver2.shape-transforms stf/func-space)
+                                                   (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space))))
+                      iu/ambiguous-diff))
+
 (defn solve-pair
   [in out]
   (let [diff (iu/diff in out)]

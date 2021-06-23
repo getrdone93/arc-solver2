@@ -32,6 +32,12 @@
   [shape]
   (and (some? shape) (= 2 (count shape))))
 
+(defn two-dim-image
+  [image]
+  (let [shp (shape image)]
+    (when (valid-image-shape? shp)
+      shp)))
+
 (defn flatten-frontier
   [[i & imgs] front]
   (if (some? i)
@@ -100,17 +106,22 @@
 
 (defn diff
   [img1 img2]
-  (let [[[i1r i1c] [i2r i2c]] (mapv (fn [i]
-                                      [(count i) (-> i first count)])
-                                    [img1 img2])]
-    (if (and (= i1r i2r) (= i1c i2c))
-      {:pix (apply + (mapv (fn [r1 r2]
-                             (apply + (mapv (fn [p1 p2]
-                                              (if (= p1 p2)
-                                                0
-                                                1)) r1 r2))) img1 img2))}
-      {:row (abs (- i1r i2r))
-       :col (abs (- i1c i2c))})))
+  (let [[[i1r i1c :as s1] [i2r i2c :as s2]] [(two-dim-image img1) (two-dim-image img2)]]
+    (if (and (some? s1) (some? s2))
+      (if (= s1 s2)
+        {:pix (apply + (mapv (fn [r1 r2]
+                               (apply + (mapv (fn [p1 p2]
+                                                (if (= p1 p2)
+                                                  0
+                                                  1)) r1 r2))) img1 img2))}
+        {:row (abs (- i1r i2r))
+         :col (abs (- i1c i2c))})
+      Integer/MAX_VALUE)))
+
+(defn ambiguous-diff
+  [img1 img2]
+  (let [{p :pix r :row c :col} (diff img1 img2)]
+    (apply + (filter some? [p r c]))))
 
 (defn shape-diff
   [img1 img2]

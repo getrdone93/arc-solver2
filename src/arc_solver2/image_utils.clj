@@ -123,21 +123,21 @@
   (let [{p :pix r :row c :col} (diff img1 img2)]
     (apply + (filter some? [p r c]))))
 
-(defn shape-diff
-  [img1 img2]
+(defn general-diff
+  [img1 img2 take-func]
   (let [{p :pix rd :row cd :col ud :undefined} (diff img1 img2)]
     (cond
       (some? ud) ud
-      (some? p) 0
+      (some? p) (take-func p)
       :else (+ rd cd))))
+
+(defn shape-diff
+  [img1 img2]
+  (general-diff img1 img2 (fn [pd] 0)))
 
 (defn pix-diff
   [img1 img2]
-  (let [{p :pix rd :row cd :col ud :undefined} (diff img1 img2)]
-    (cond
-      (some? ud) ud
-      (some? p) p
-      :else (+ rd cd))))
+  (general-diff img1 img2 identity))
 
 (defn gen-row
   [v image]

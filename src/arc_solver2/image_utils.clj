@@ -116,7 +116,7 @@
                                                   1)) r1 r2))) img1 img2))}
         {:row (abs (- i1r i2r))
          :col (abs (- i1c i2c))})
-      Integer/MAX_VALUE)))
+      {:undefined Long/MAX_VALUE})))
 
 (defn ambiguous-diff
   [img1 img2]
@@ -125,17 +125,19 @@
 
 (defn shape-diff
   [img1 img2]
- (let [{p :pix rd :row cd :col} (diff img1 img2)]
-   (if (some? p)
-     0
-     (+ rd cd))))
+  (let [{p :pix rd :row cd :col ud :undefined} (diff img1 img2)]
+    (cond
+      (some? ud) ud
+      (some? p) 0
+      :else (+ rd cd))))
 
 (defn pix-diff
   [img1 img2]
-  (let [{p :pix rd :row cd :col} (diff img1 img2)]
-    (if (some? p)
-      p
-      (+ rd cd))))
+  (let [{p :pix rd :row cd :col ud :undefined} (diff img1 img2)]
+    (cond
+      (some? ud) ud
+      (some? p) p
+      :else (+ rd cd))))
 
 (defn gen-row
   [v image]

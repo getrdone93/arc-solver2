@@ -118,6 +118,34 @@
          :col (abs (- i1c i2c))})
       {:undefined Long/MAX_VALUE})))
 
+(defn image-indicies
+  [image]
+  (apply concat (map-indexed (fn [rind row]
+                               (map-indexed (fn [cind _]
+                                              [rind cind]) row)) image)))
+
+(defn num-same-pix
+  [img1 img2 inds]
+  (count (filter some? (map (fn [[r c]]
+                              (when (= ((img1 r) c) ((img2 r) c))
+                                1)) inds))))
+
+(defn percent-alike
+  [img1 img2]
+  (if (and (valid-image? img1) (valid-image? img2))
+    (let [i1-ind (image-indicies img1)
+          i2-ind (image-indicies img2)
+          ind-int (clojure.set/intersection (set i1-ind) (set i2-ind))
+          int-count (count ind-int)
+          max-count (max (count i1-ind) (count i2-ind))
+          pd (num-same-pix img1 img2 ind-int)]
+      (/ (+ (/ int-count max-count) (/ pd int-count)) 2))
+    0))
+
+(defn percent-diff
+  [img1 img2]
+  (- 1 (percent-alike img1 img2)))
+
 (defn ambiguous-diff
   [img1 img2]
   (let [{p :pix r :row c :col} (diff img1 img2)]

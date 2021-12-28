@@ -110,7 +110,7 @@
   [in out]
   (greedy-limited-bfs in out (vec (shuffle (concat (iu/funcs-for-ns 'arc-solver2.shape-transforms stf/func-space)
                                                    (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space))))
-                      iu/ambiguous-diff))
+                      iu/percent-diff))
 
 (defn solve-pair
   [in out]

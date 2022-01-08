@@ -161,7 +161,7 @@
 
 (defn shape-diff
   [img1 img2]
-  (general-diff img1 img2 (fn [pd] 0)))
+  (general-diff img1 img2 (fn [_] 0)))
 
 (defn pix-diff
   [img1 img2]

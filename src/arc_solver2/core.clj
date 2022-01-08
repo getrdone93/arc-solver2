@@ -11,6 +11,8 @@
   (:require [cheshire.core :as chesh-core])
   (:require [clojure.tools.logging :as log]))
 
+(import '(java.util.concurrent Executors))
+
 (def arc-data "/home/tanderson/git/ARC/data/")
 
 (def train-path (str arc-data "training/"))
@@ -76,6 +78,36 @@
                                                          (if (empty? res)
                                                            0
                                                            1))))) train)) (count train)]) all-probs)))
+
+(defn thread-name
+  []
+  (. (. Thread currentThread) getName))
+
+(def tasks
+  (repeat 3 (fn []
+              (do
+                (println (str (. (. Thread currentThread) getName) " is sleeping..."))
+                (Thread/sleep 10000)
+                (println (str "hello from " (. (. Thread currentThread) getName)))))))
+
+(defn submit-tasks-to-pool
+  ([pool tasks]
+   (submit-tasks-to-pool pool tasks []))
+  ([pool [t & ts] res]
+   (if (some? t)
+     (recur pool ts (conj res (.submit pool t)))
+     res)))
+
+(defn new-schedule-example
+  []
+  (let [pool (Executors/newFixedThreadPool 3)
+        tasks (submit-tasks-to-pool pool tasks)]
+    (println (thread-name) " is going to sleep...")
+    (Thread/sleep 1000)
+    (doseq [future tasks]
+      (println (thread-name) " time to cancel " future)
+      (.cancel future true))
+    (.shutdown pool)))
 
 (def probs (all-problems train-path))
 

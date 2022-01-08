@@ -87,8 +87,8 @@
   (repeat 3 (fn []
               (do
                 (println (str (. (. Thread currentThread) getName) " is sleeping..."))
-                (Thread/sleep 10000)
-                (println (str "hello from " (. (. Thread currentThread) getName)))))))
+                (Thread/sleep 500)
+                (str "hello from " (. (. Thread currentThread) getName))))))
 
 (defn submit-tasks-to-pool
   ([pool tasks]
@@ -103,10 +103,13 @@
   (let [pool (Executors/newFixedThreadPool 3)
         tasks (submit-tasks-to-pool pool tasks)]
     (println (thread-name) " is going to sleep...")
-    (Thread/sleep 1000)
+    (Thread/sleep 3000)
     (doseq [future tasks]
-      (println (thread-name) " time to cancel " future)
-      (.cancel future true))
+      (if (.isDone future)
+        (println "no cancel, future value: " (.get future))
+        (do
+          (println "cancelling future")
+          (.cancel future true))))
     (.shutdown pool)))
 
 (def probs (all-problems train-path))

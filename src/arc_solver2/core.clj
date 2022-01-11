@@ -69,7 +69,7 @@
             [(+ tot-solv task-solv) (+ tot task-tot)])
           [0 0] (map-indexed (fn [ind [fp {train "train"}]]
                                (println "solving " ind fp (str (format "%.2f"
-                                                                   (* 100 (float (/ (inc ind) (count all-probs))))) "%"))
+                                                                       (* 100 (float (/ (inc ind) (count all-probs))))) "%"))
                                [fp (apply + (map (fn [{in "input" out "output"}]
                                                    (let [{pd :pix} (iu/diff in out)]
                                                      (if (and (some? pd) (zero? pd))
@@ -90,27 +90,35 @@
                 (Thread/sleep 500)
                 (str "hello from " (. (. Thread currentThread) getName))))))
 
-(defn submit-tasks-to-pool
-  ([pool tasks]
-   (submit-tasks-to-pool pool tasks []))
-  ([pool [t & ts] res]
-   (if (some? t)
-     (recur pool ts (conj res (.submit pool t)))
-     res)))
+(defn exec-funcs
+  ([funcs thrd-pool]
+   (exec-funcs funcs (* 1000 2) thrd-pool))
+  ([funcs timeout thrd-pool]
+   (let [subm-tsks (doall (map (fn [f]
+                                 (.submit thrd-pool f)) funcs))]
+     ;(println (thread-name) " will wait for " timeout "ms")
+     (Thread/sleep timeout)
+     ;(println (thread-name) " collecting or cancelling")
+     (doall (map (fn [future]
+                   [future (if (.isDone future)
+                             (.get future)
+                             (.cancel future true))]) subm-tsks)))))
 
-(defn new-schedule-example
-  []
-  (let [pool (Executors/newFixedThreadPool 3)
-        tasks (submit-tasks-to-pool pool tasks)]
-    (println (thread-name) " is going to sleep...")
-    (Thread/sleep 3000)
-    (doseq [future tasks]
-      (if (.isDone future)
-        (println "no cancel, future value: " (.get future))
-        (do
-          (println "cancelling future")
-          (.cancel future true))))
-    (.shutdown pool)))
+(defn solve-tasks-new
+  [all-probs func num-thrds thrd-pool]
+  (map (fn [[ind fp fgrps tcnt]]
+         (do
+           (println "ind " ind " problem " fp " " (str (format "%.2f"
+                                                           (* 100 (float (/ (inc ind) (count all-probs))))) "%"))
+           (let [res (flatten (map #(exec-funcs % thrd-pool) fgrps))
+                 [solv unsolv] [(count (filter boolean? res))
+                                (count (filter #(not (boolean? %)) res))]]
+             (println "solv " solv " unsolv " unsolv " total " tcnt))))
+       (map-indexed (fn [ind [fp {tsks "train"}]]
+              [ind fp (partition num-thrds
+                             (map (fn [{in "input" output "output"}]
+                                    (partial func in output)) tsks)) (count tsks)]) all-probs)))
+
 
 (def probs (all-problems train-path))
 

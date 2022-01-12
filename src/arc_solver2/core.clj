@@ -92,7 +92,7 @@
 
 (defn exec-funcs
   ([funcs thrd-pool]
-   (exec-funcs funcs (* 1000 2) thrd-pool))
+   (exec-funcs funcs (* 1000 15) thrd-pool))
   ([funcs timeout thrd-pool]
    (let [subm-tsks (doall (map (fn [f]
                                  (.submit thrd-pool f)) funcs))]
@@ -104,20 +104,34 @@
                              (.get future)
                              (.cancel future true))]) subm-tsks)))))
 
-(defn solve-tasks-new
-  [all-probs func num-thrds thrd-pool]
-  (map (fn [[ind fp fgrps tcnt]]
-         (do
-           (println "ind " ind " problem " fp " " (str (format "%.2f"
-                                                           (* 100 (float (/ (inc ind) (count all-probs))))) "%"))
-           (let [res (flatten (map #(exec-funcs % thrd-pool) fgrps))
-                 [solv unsolv] [(count (filter boolean? res))
-                                (count (filter #(not (boolean? %)) res))]]
-             (println "solv " solv " unsolv " unsolv " total " tcnt))))
-       (map-indexed (fn [ind [fp {tsks "train"}]]
-              [ind fp (partition num-thrds
-                             (map (fn [{in "input" output "output"}]
-                                    (partial func in output)) tsks)) (count tsks)]) all-probs)))
+(defn percentage
+  [num denom]
+  (if (zero? denom)
+    0
+    (* 100 (float (/ num denom)))))
+
+(defn fmt-percentage
+  [num denom]
+  (str (format "%.2f" (percentage num denom)) "%"))
+
+(defn solve-all-tasks
+  ([problems thrd-pool]
+   (solve-all-tasks problems search/find-progs 2 thrd-pool))
+  ([all-probs func num-thrds thrd-pool]
+  (reduce (fn [[slv-tsk tot-tsk] [ind fp fgrps tcnt]]
+            (do
+              (println "ind: " ind " problem: " fp " " (fmt-percentage (inc ind) (count all-probs))
+                       " total solved: " slv-tsk " total tasks: " tot-tsk
+                       ;" pct solv: " (fmt-percentage slv-tsk tot-tsk)
+                       )
+              (let [res (map second (apply concat (map #(exec-funcs % thrd-pool) fgrps)))]
+                [(+ slv-tsk (count (filter #(not (boolean? %)) res)))
+                 (+ tot-tsk tcnt)])))
+          [0 0]
+          (map-indexed (fn [ind [fp {tsks "train"}]]
+                         [ind fp (partition num-thrds
+                                            (map (fn [{in "input" output "output"}]
+                                                   (partial func in output)) tsks)) (count tsks)]) all-probs))))
 
 
 (def probs (all-problems train-path))

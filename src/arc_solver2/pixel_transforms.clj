@@ -39,5 +39,13 @@
   ([image cols]
    (iu/shift-cols image cols iu/shift-left)))
 
+;(def func-space
+;  {'filter-image (iu/func-space filter-image (map #(vector % 0) (range 10)))})
+
 (def func-space
-  {'filter-image (iu/func-space filter-image (map #(vector % 0) (range 10)))})
+  {'filter-image (iu/func-space filter-image (map #(vector % 0) (range 10)))
+   'rotate-image [rotate-image]
+   'shift-rows-left [shift-rows-left]
+   'shift-rows-right [shift-rows-right]
+   'shift-cols-down [shift-cols-down]
+   'shift-cols-up [shift-cols-up]})

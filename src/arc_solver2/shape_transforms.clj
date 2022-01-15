@@ -73,4 +73,9 @@
    'add-last-row    (iu/color-func-space add-last-row)
    'add-first-col   (iu/color-func-space add-first-col)
    'add-last-col    (iu/color-func-space add-last-col)
-   'increase-border (iu/color-func-space increase-border)})
+   'increase-border (iu/color-func-space increase-border)
+   'remove-first-col [remove-first-col]
+   'remove-first-row [remove-first-row]
+   'remove-last-col [remove-last-col]
+   'remove-last-row [remove-last-row]
+   'decrease-border [decrease-border]})

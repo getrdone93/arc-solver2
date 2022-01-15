@@ -114,6 +114,8 @@
   [num denom]
   (str (format "%.2f" (percentage num denom)) "%"))
 
+(def pool (Executors/newFixedThreadPool 2))
+
 (defn solve-all-tasks
   ([problems thrd-pool]
    (solve-all-tasks problems search/find-progs 2 thrd-pool))
@@ -132,7 +134,6 @@
                          [ind fp (partition num-thrds
                                             (map (fn [{in "input" output "output"}]
                                                    (partial func in output)) tsks)) (count tsks)]) all-probs))))
-
 
 (def probs (all-problems train-path))
 

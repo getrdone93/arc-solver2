@@ -7,6 +7,7 @@
   (:require [arc-solver2.collection-transforms :as ctf])
   (:require [arc-solver2.merge-transform :as mtf])
   (:require [arc-solver2.search :as search])
+  (:require [arc-solver2.evolutionary-search :as es])
   ;keep for REPL
   (:require [cheshire.core :as chesh-core])
   (:require [clojure.tools.logging :as log]))
@@ -91,18 +92,20 @@
                 (str "hello from " (. (. Thread currentThread) getName))))))
 
 (defn exec-funcs
-  ([funcs thrd-pool]
-   (exec-funcs funcs (* 1000 15) thrd-pool))
-  ([funcs timeout thrd-pool]
-   (let [subm-tsks (doall (map (fn [f]
-                                 (.submit thrd-pool f)) funcs))]
+  ([funcs thrd-pool shut-down]
+   (exec-funcs funcs (* 1000 15) thrd-pool shut-down))
+  ([funcs timeout thrd-pool shut-down]
+   (let [subm-tsks (do
+                     (reset! shut-down false)
+                     (doall (map (fn [f]
+                                 (.submit thrd-pool f)) funcs)))]
      ;(println (thread-name) " will wait for " timeout "ms")
      (Thread/sleep timeout)
+     (reset! shut-down true)
+     (Thread/sleep 100)
      ;(println (thread-name) " collecting or cancelling")
      (doall (map (fn [future]
-                   [future (if (.isDone future)
-                             (.get future)
-                             (.cancel future true))]) subm-tsks)))))
+                   [future (.get future)]) subm-tsks)))))
 
 (defn percentage
   [num denom]
@@ -117,23 +120,24 @@
 (def pool (Executors/newFixedThreadPool 2))
 
 (defn solve-all-tasks
-  ([problems thrd-pool]
-   (solve-all-tasks problems search/find-progs 2 thrd-pool))
-  ([all-probs func num-thrds thrd-pool]
+  ([problems thrd-pool search-func shut-down-atom]
+   (solve-all-tasks problems search-func 2 thrd-pool shut-down-atom))
+  ([all-probs search-func num-thrds thrd-pool shut-down-atom]
   (reduce (fn [[slv-tsk tot-tsk] [ind fp fgrps tcnt]]
             (do
               (println "ind: " ind " problem: " fp " " (fmt-percentage (inc ind) (count all-probs))
                        " total solved: " slv-tsk " total tasks: " tot-tsk
                        ;" pct solv: " (fmt-percentage slv-tsk tot-tsk)
                        )
-              (let [res (map second (apply concat (map #(exec-funcs % thrd-pool) fgrps)))]
-                [(+ slv-tsk (count (filter #(not (boolean? %)) res)))
+              (let [res (filter (fn [[_ {s :solved}]]
+                                  s) (apply concat (map #(exec-funcs % thrd-pool shut-down-atom) fgrps)))]
+                [(+ slv-tsk (count res))
                  (+ tot-tsk tcnt)])))
           [0 0]
           (map-indexed (fn [ind [fp {tsks "train"}]]
                          [ind fp (partition num-thrds
                                             (map (fn [{in "input" output "output"}]
-                                                   (partial func in output)) tsks)) (count tsks)]) all-probs))))
+                                                   (partial search-func in output)) tsks)) (count tsks)]) all-probs))))
 
 (def probs (all-problems train-path))
 

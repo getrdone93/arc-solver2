@@ -1,0 +1,3 @@
+branch,commit,algorithm,tasks-solved,machine
+master,b3f1335,genetic-algorithm,140,trever
+master,b3f1335,greedy-limited-bfs,156,trever

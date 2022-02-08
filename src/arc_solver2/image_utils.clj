@@ -1,4 +1,5 @@
-(ns arc-solver2.image-utils)
+(ns arc-solver2.image-utils
+  (:require [clojure.set :as cset]))
 
 (defn shape
   ([tensor]
@@ -82,7 +83,7 @@
 
 (defn colors
   [image bg]
-  (clojure.set/difference (set (flatten image)) #{bg}))
+  (cset/difference (set (flatten image)) #{bg}))
 
 (defn group-colors-by-row
   [row bg order]
@@ -135,7 +136,7 @@
   (if (and (valid-image? img1) (valid-image? img2))
     (let [i1-ind (image-indicies img1)
           i2-ind (image-indicies img2)
-          ind-int (clojure.set/intersection (set i1-ind) (set i2-ind))
+          ind-int (cset/intersection (set i1-ind) (set i2-ind))
           int-count (count ind-int)
           max-count (max (count i1-ind) (count i2-ind))
           pd (num-same-pix img1 img2 ind-int)]
@@ -316,7 +317,7 @@
 (defn funcs-for-ns
   [ns ns-func-space]
   (let [all (ns-publics ns)
-        one-arg (map #(% all) (clojure.set/difference (set (keys all))
+        one-arg (map #(% all) (cset/difference (set (keys all))
                                                       (set (keys ns-func-space))))]
     (filterv (fn [sym]
               (not (clojure.string/includes? (str sym) "func-space")))

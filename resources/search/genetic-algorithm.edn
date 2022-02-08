@@ -1,0 +1,3 @@
+{:search-name :genetic-algorithm
+ :threads 4
+ :timeout 30}

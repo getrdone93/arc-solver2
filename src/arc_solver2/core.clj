@@ -10,13 +10,18 @@
   (:require [arc-solver2.evolutionary-search :as es])
   ;keep for REPL
   (:require [cheshire.core :as chesh-core])
-  (:require [clojure.tools.logging :as log]))
+  (:require [clojure.tools.logging :as log])
+  (:require [clojure.java.io :as io])
+  (:require [clojure.edn :as edn]))
 
 (import '(java.util.concurrent Executors))
 
-(def arc-data "/home/tanderson/git/ARC/data/")
+;for repl
+;(def data-dir "/home/tanderson/git/ARC/data/")
 
-(def train-path (str arc-data "training/"))
+(def data-dir "/mnt/data/")
+
+(def train-path (str data-dir "training/"))
 
 (defn problem-path
   [problem]
@@ -100,7 +105,7 @@
                      (doall (map (fn [f]
                                  (.submit thrd-pool f)) funcs)))]
      ;(println (thread-name) " will wait for " timeout "ms")
-     (Thread/sleep timeout)
+     (Thread/sleep (* 1000 timeout))
      (reset! shut-down true)
      (Thread/sleep 100)
      ;(println (thread-name) " collecting or cancelling")
@@ -120,28 +125,50 @@
 (def pool (Executors/newFixedThreadPool 2))
 
 (defn solve-all-tasks
-  ([problems thrd-pool search-func shut-down-atom]
-   (solve-all-tasks problems search-func 2 thrd-pool shut-down-atom))
-  ([all-probs search-func num-thrds thrd-pool shut-down-atom]
+  [{all-probs :all-probs search-func :search-func num-thrds :num-thrds
+    thrd-pool :thrd-pool shut-down-atom :shut-down-atom timeout :timeout}]
   (reduce (fn [[slv-tsk tot-tsk] [ind fp fgrps tcnt]]
             (do
-              (println "ind: " ind " problem: " fp " " (fmt-percentage (inc ind) (count all-probs))
+              (println "sa: " (type search-func) "ind: " ind " problem: " fp " " (fmt-percentage (inc ind) (count all-probs))
                        " total solved: " slv-tsk " total tasks: " tot-tsk
                        ;" pct solv: " (fmt-percentage slv-tsk tot-tsk)
                        )
               (let [res (filter (fn [[_ {s :solved}]]
-                                  s) (apply concat (map #(exec-funcs % thrd-pool shut-down-atom) fgrps)))]
+                                  s) (apply concat (map #(exec-funcs % timeout thrd-pool shut-down-atom) fgrps)))]
                 [(+ slv-tsk (count res))
                  (+ tot-tsk tcnt)])))
           [0 0]
           (map-indexed (fn [ind [fp {tsks "train"}]]
                          [ind fp (partition num-thrds
                                             (map (fn [{in "input" output "output"}]
-                                                   (partial search-func in output)) tsks)) (count tsks)]) all-probs))))
+                                                   (partial search-func in output)) tsks)) (count tsks)]) all-probs)))
 
 (def probs (all-problems train-path))
 
+(def search-func-map
+  {:greedy-limited-bfs {:search search/find-progs
+                        :atom search/shutting-down}
+   :genetic-algorithm  {:search es/search
+                        :atom es/shutting-down}})
+
 (defn -main
-  "I don't do a whole lot ... yet."
   [& args]
-  (println "Hello, World!"))
+  (println "running arc-solver2, found " (count probs) " problems under " train-path)
+  (let [vec-args (vec args)]
+    (if (= (count vec-args) 1)
+      (let [file-res (io/resource (str "search/" (first vec-args) ".edn"))]
+        (if (some? file-res)
+          (let [props (edn/read-string (slurp file-res))
+                thrd-pool (Executors/newFixedThreadPool (props :threads))]
+            (solve-all-tasks {:all-probs probs
+                              :search-func ((search-func-map (props :search-name)) :search)
+                              :num-thrds (props :threads)
+                              :thrd-pool thrd-pool
+                              :shut-down-atom ((search-func-map (props :search-name)) :atom)
+                              :timeout (props :timeout)})
+            (doall (map (fn [[_ {a :atom}]]
+                          (reset! a true)) search-func-map))
+            (.shutdownNow thrd-pool))
+          (println "error: " (first vec-args) " was not found\n"
+                   "usage: java -jar [executable-name] [prop-file-name]")))
+      (println "usage: java -jar [executable-name] [prop-file-name]"))))

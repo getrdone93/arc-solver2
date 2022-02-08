@@ -82,32 +82,32 @@
                            out tokens Long/MAX_VALUE {} diff-func shut-down))
      []))
   ([[[in prog] & res-ins :as frontier] out tokens max-depth all-progs diff-func shut-down]
-   (if @shut-down
-     (let [srted (apply sorted-set-by (fn [[img1 _] [img2 _]]
-                                        (< (diff-func img1 out) (diff-func img2 out))) all-progs)]
-       {:solved   (= (-> srted first first) out)
-        :programs srted})
-     (cond
-       (and (not (iu/valid-image? in)) (empty? res-ins)) (let [srted (apply sorted-set-by
-                                                                            (fn [[img1 _] [img2 _]]
-                                                                              (< (diff-func img1 out) (diff-func img2 out))) all-progs)]
-                                                           {:solved   (= (-> srted first first) out)
-                                                            :programs srted})
-       (>= (count prog) max-depth) (recur res-ins out tokens max-depth all-progs diff-func shut-down)
-       (iu/valid-image? in) (let [d (diff-func in out)
-                                  [front-key new-front] (look-ahead (mapv (fn [tok]
-                                                                            [(tok in) (conj prog tok)]) tokens)
-                                                                    out d diff-func)]
-                              ;(debug-search {:dist d :in in :out out :frontier frontier :res-ins res-ins})
-                              (if (= front-key :perfect)
-                                (recur res-ins out tokens
-                                       (inc (count prog)) (clojure.set/union all-progs new-front) diff-func shut-down)
-                                (recur (clojure.set/union res-ins (mapv (fn [[_ vs]]
-                                                                          (first (sort (fn [[_ p1] [_ p2]]
-                                                                                         (< (count p1) (count p2))) vs)))
-                                                                        (group-by first new-front)))
-                                       out tokens max-depth all-progs diff-func shut-down)))
-       :else (recur res-ins out tokens max-depth all-progs diff-func shut-down)))))
+     (if @shut-down
+       (let [srted (apply sorted-set-by (fn [[img1 _] [img2 _]]
+                                          (< (diff-func img1 out) (diff-func img2 out))) all-progs)]
+         {:solved   (= (-> srted first first) out)
+          :programs srted})
+       (cond
+         (and (not (iu/valid-image? in)) (empty? res-ins)) (let [srted (apply sorted-set-by
+                                                                              (fn [[img1 _] [img2 _]]
+                                                                                (< (diff-func img1 out) (diff-func img2 out))) all-progs)]
+                                                             {:solved   (= (-> srted first first) out)
+                                                              :programs srted})
+         (>= (count prog) max-depth) (recur res-ins out tokens max-depth all-progs diff-func shut-down)
+         (iu/valid-image? in) (let [d (diff-func in out)
+                                    [front-key new-front] (look-ahead (mapv (fn [tok]
+                                                                              [(tok in) (conj prog tok)]) tokens)
+                                                                      out d diff-func)]
+                                ;(debug-search {:dist d :in in :out out :frontier frontier :res-ins res-ins})
+                                (if (= front-key :perfect)
+                                  (recur res-ins out tokens
+                                         (inc (count prog)) (clojure.set/union all-progs new-front) diff-func shut-down)
+                                  (recur (clojure.set/union res-ins (mapv (fn [[_ vs]]
+                                                                            (first (sort (fn [[_ p1] [_ p2]]
+                                                                                           (< (count p1) (count p2))) vs)))
+                                                                          (group-by first new-front)))
+                                         out tokens max-depth all-progs diff-func shut-down)))
+         :else (recur res-ins out tokens max-depth all-progs diff-func shut-down)))))
 
 (defn equal-shape
   [in out]

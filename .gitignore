@@ -1,4 +1,4 @@
-src/scrap
+scrap
 *iml
 .idea
 output
@@ -14,3 +14,11 @@ pom.xml.asc
 /.nrepl-port
 .hgignore
 .hg/
+
+image_run.sh
+rebuild.sh
+run-algorithm.sh
+run.sh
+inspect.json
+jar_run.sh
+run_algorithm.sh

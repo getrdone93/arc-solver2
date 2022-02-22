@@ -1,6 +1,6 @@
 (ns arc-solver2.core
   (:gen-class)
-  ;keep for REPL
+  ;arc-solver2 ns
   (:require [arc-solver2.pixel-transforms :as ptf])
   (:require [arc-solver2.shape-transforms :as stf])
   (:require [arc-solver2.image-utils :as iu])
@@ -8,40 +8,21 @@
   (:require [arc-solver2.merge-transform :as mtf])
   (:require [arc-solver2.search :as search])
   (:require [arc-solver2.evolutionary-search :as es])
+  (:require [arc-solver2.disk-utils :as du])
+
+  ;solutions
+  (:require [arc-solver2.solution-746b3537 :as sol1])
+
   ;keep for REPL
-  (:require [cheshire.core :as chesh-core])
   (:require [clojure.tools.logging :as log])
   (:require [clojure.java.io :as io])
   (:require [clojure.edn :as edn]))
 
 (import '(java.util.concurrent Executors))
 
-;for repl and local runs
-;(def data-dir "/home/tanderson/git/ARC/data/")
-
-(def data-dir "/mnt/data/")
-
-(def train-path (str data-dir "training/"))
-
-(defn problem-path
-  [problem]
-  (str train-path problem))
-
-(defn out-path
-  [file-name]
-  (str "/home/tanderson/git/arc-solver2/output/" file-name))
-
-(defn read-problem
-  [problem-name]
-  (chesh-core/parse-string (slurp (problem-path problem-name))))
-
 (defn test-train-image
   [problem n]
   ((first (problem "train")) "input"))
-
-(defn write-solution
-  [out-path structure]
-  (spit out-path (chesh-core/generate-string structure)))
 
 (defn solve-problem
   [input sol-func]
@@ -49,12 +30,6 @@
             (assoc iv k (mapv (fn [{i "input"}]
                                 {"input" i "output" (sol-func i)})
                               (input k)))) {} (keys input)))
-
-(defn all-problems
-  [data-path]
-  (let [[_ & prob-files] (file-seq (clojure.java.io/file data-path))]
-    (map (fn [f]
-           [(. f getAbsolutePath) (chesh-core/parse-string (slurp f))]) prob-files)))
 
 (defn func-on-all-probs
   [func all-probs]
@@ -143,7 +118,7 @@
                                             (map (fn [{in "input" output "output"}]
                                                    (partial search-func in output)) tsks)) (count tsks)]) all-probs)))
 
-(def probs (all-problems train-path))
+
 
 (def search-func-map
   {:greedy-limited-bfs {:search search/find-progs
@@ -153,14 +128,14 @@
 
 (defn -main
   [& args]
-  (println "running arc-solver2, found " (count probs) " problems under " train-path)
+  (println "running arc-solver2, found " (count du/probs) " problems under " du/train-path)
   (let [vec-args (vec args)]
     (if (= (count vec-args) 1)
       (let [file-res (io/resource (str "search/" (first vec-args) ".edn"))]
         (if (some? file-res)
           (let [props (edn/read-string (slurp file-res))
                 thrd-pool (Executors/newFixedThreadPool (props :threads))]
-            (solve-all-tasks {:all-probs probs
+            (solve-all-tasks {:all-probs du/probs
                               :search-func ((search-func-map (props :search-name)) :search)
                               :num-thrds (props :threads)
                               :thrd-pool thrd-pool

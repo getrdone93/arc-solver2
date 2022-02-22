@@ -1,3 +1,5 @@
 branch,commit,algorithm,tasks-solved,machine
+split-merge-space,67c9101,genetic-algorithm,34,trever
+split-merge-space,67c9101,greedy-limited-bfs,107,trever
 master,b3f1335,genetic-algorithm,140,trever
 master,b3f1335,greedy-limited-bfs,156,trever

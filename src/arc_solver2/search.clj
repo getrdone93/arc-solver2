@@ -1,6 +1,7 @@
 (ns arc-solver2.search
   (:require [arc-solver2.image-utils :as iu])
   (:require [arc-solver2.shape-transforms :as stf])
+  (:require [arc-solver2.custom-space :as cs])
   (:require [clojure.tools.logging :as log]
             [arc-solver2.pixel-transforms :as ptf])
   (:require [cheshire.core :as chesh-core]))

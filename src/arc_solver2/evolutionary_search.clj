@@ -1,11 +1,13 @@
 (ns arc-solver2.evolutionary-search
   (:require [arc-solver2.image-utils :as iu]
             [arc-solver2.shape-transforms :as stf]
-            [arc-solver2.pixel-transforms :as ptf]))
+            [arc-solver2.pixel-transforms :as ptf]
+            [arc-solver2.custom-space :as cs]))
 
 (def token-space
   (set (shuffle (concat (iu/funcs-for-ns 'arc-solver2.shape-transforms stf/func-space)
-                   (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space)))))
+                        (iu/funcs-for-ns 'arc-solver2.pixel-transforms ptf/func-space)
+                        cs/func-space))))
 
 (defn sort-images-with-diff
   [imgs out-img]

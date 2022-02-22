@@ -16,7 +16,7 @@
 
 (import '(java.util.concurrent Executors))
 
-;for repl
+;for repl and local runs
 ;(def data-dir "/home/tanderson/git/ARC/data/")
 
 (def data-dir "/mnt/data/")

@@ -49,4 +49,6 @@
 
 (def func-space
   {'layers-by-color [(partial layers-by-color 0)]
-   'split-along (iu/color-func-space split-along)})
+   'split-along (iu/color-func-space split-along)
+   'split-horizontal [split-horizontal]
+   'split-vertical [split-vertical]})
